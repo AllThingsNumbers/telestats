@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeleStats – archiwum polskich teleturniejów</title>
+<meta name="description" content="Fanowskie archiwum polskich teleturniejów: odcinki, zawodnicy, pytania i wyniki. Na początek: Va Banque.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+
+<header class="mast">
+  <div class="util">
+    <nav aria-label="Menu główne">
+      <a href="index.html" aria-current="page">[ STRONA GŁÓWNA ]</a>
+      <a href="#">[ BAZA ODCINKÓW ]</a>
+      <a href="dodaj-odcinek.html">[ DODAJ ODCINEK ]</a>
+      <a href="#">[ STATYSTYKI ]</a>
+    </nav>
+    <span>aktualizacja: 30.09.2026</span>
+  </div>
+  <div class="brand">
+    <div>
+      <a class="logo" href="index.html">Tele<b>Stats</b></a>
+      <p class="tag">Archiwum polskich teleturniejów</p>
+    </div>
+    <!-- Wyszukiwarka tymczasowa: DuckDuckGo przeszukuje tylko tę stronę. Własną wyszukiwarkę dodamy z bazą danych. -->
+    <form class="search" action="https://duckduckgo.com/" role="search">
+      <input type="hidden" name="sites" value="telestats.pl">
+      <input type="search" name="q" placeholder="program, odcinek, zawodnik…" aria-label="Szukaj w archiwum">
+      <button type="submit">Szukaj</button>
+    </form>
+  </div>
+</header>
+
+<h1 class="sr">TeleStats – archiwum polskich teleturniejów</h1>
+
+<div class="layout">
+  <main class="stack">
+
+    <section class="panel">
+      <div class="bar"><h2>PROGRAMY</h2></div>
+      <div class="shows">
+        <div class="show"><h3>Va Banque</h3><a href="dodaj-odcinek.html?program=va-banque">Dodaj odcinek</a><a href="#">Wszystkie odcinki</a></div>
+        <div class="show"><h3>1 z 10</h3><a href="dodaj-odcinek.html?program=1-z-10">Dodaj odcinek</a><a href="#">Wszystkie odcinki</a></div>
+        <div class="show"><h3>Familiada</h3><a href="dodaj-odcinek.html?program=familiada">Dodaj odcinek</a><a href="#">Wszystkie odcinki</a></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="bar"><h2>NAJNOWSZE ODCINKI</h2><small>ostatnie wpisy</small></div>
+      <div class="wrap">
+        <table>
+          <thead>
+            <tr><th>PROGRAM</th><th>ODCINEK</th><th>ZWYCIĘZCA</th><th class="num">DATA EMISJI</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4">Archiwum jest w budowie. <a href="dodaj-odcinek.html">Dodaj pierwszy odcinek</a>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rowbar"><span>W bazie: 0 odcinków</span><a href="#">[ PEŁNE ARCHIWUM → ]</a></div>
+      <p class="note">Archiwum dopiero powstaje – każdy może pomóc je uzupełnić.</p>
+    </section>
+
+  </main>
+
+  <aside aria-label="Postęp archiwum">
+    <section class="panel">
+      <div class="bar"><h2>POSTĘP ARCHIWUM</h2></div>
+      <div class="pad">
+        <p class="meta">Ile odcinków jest już w archiwum? Przepisz odcinek lub pytania z programu i pomóż nam dojść do 100%.</p>
+        <!-- Procenty i liczby wstawi później skrypt fetch_data.py -->
+        <ul class="prog">
+          <li><div><a href="dodaj-odcinek.html?program=va-banque">Va Banque</a><strong>0%</strong></div><progress value="0" max="100" aria-label="Va Banque: 0%">0%</progress><span class="sub">0 odcinków w bazie</span></li>
+          <li><div><a href="dodaj-odcinek.html?program=1-z-10">1 z 10</a><strong>0%</strong></div><progress value="0" max="100" aria-label="1 z 10: 0%">0%</progress><span class="sub">0 odcinków w bazie</span></li>
+          <li><div><a href="dodaj-odcinek.html?program=familiada">Familiada</a><strong>0%</strong></div><progress value="0" max="100" aria-label="Familiada: 0%">0%</progress><span class="sub">0 odcinków w bazie</span></li>
+        </ul>
+        <a class="btn" href="dodaj-odcinek.html">Dodaj odcinek</a>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<footer class="footer">
+  <div>
+    TeleStats jest fanowskim archiwum polskich teleturniejów.
+    <small>Materiały i nazwy programów należą do ich właścicieli. © 2026 TeleStats</small>
+  </div>
+  <nav aria-label="Stopka"><a href="#">O STRONIE</a><a href="#">KONTAKT</a><a href="#">ARCHIWUM</a></nav>
+</footer>
+
+</div>
+</body>
+</html>
