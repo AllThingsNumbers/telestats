@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeleStats – Va Banque</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="recap.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Tele<b>Stats</b></div>
+    <div class="nav"><a href="index.html">[ STRONA GŁÓWNA ]</a><a href="#">[ BAZA ODCINKÓW ]</a><a href="#">[ STATYSTYKI ]</a></div>
+  </div>
+  <div class="prevnext"><a href="#">« poprzedni odcinek</a><a href="#">następny odcinek »</a></div>
+
+  <div id="app"></div>
+
+  <div class="foot">TeleStats jest fanowskim archiwum polskich teleturniejów. Materiały i nazwy programów należą do ich właścicieli. © 2026 TeleStats</div>
+</div>
+
+<!-- ============ DANE ODCINKA: tu edytujesz wszystko ============ -->
+<script>
+const ODCINEK = {
+  program: "Va Banque",
+  numer: 792,
+  data: "29.09.2026",
+  typ: "turniej zwykły",
+  uwaga: "DANE PRZYKŁADOWE – zastąp własnymi i usuń tę linijkę",
+
+  // id 1, 2, 3 = kolor zawodnika. Kolejność = kolejność w tabelach wyników.
+  zawodnicy: [
+    { id: 1, imie: "Anna Kowalska",   opis: "nauczycielka z Krakowa" },
+    { id: 2, imie: "Jan Nowak",       opis: "student z Wrocławia" },
+    { id: 3, imie: "Piotr Zieliński", opis: "informatyk z Gdańska" }
+  ],
+
+  // kto: id zawodnika, który odpowiedział poprawnie (0 lub brak = nikt)
+  // zle: [id, id] – kto odpowiedział błędnie (opcjonalnie)
+  // premia: true – pytanie z premią
+  rundy: [
+    {
+      nazwa: "Runda 1",
+      kategorie: [
+        { nazwa: "Geografia", pytania: [
+          { kwota: 200, pytanie: "Najdłuższa rzeka Polski", odpowiedz: "Wisła", kto: 1 },
+          { kwota: 400, pytanie: "Najwyższy szczyt Polski", odpowiedz: "Rysy", kto: 2 },
+          { kwota: 600, pytanie: "Morze, nad którym leży Gdynia", odpowiedz: "Bałtyk", kto: 1 }
+        ]},
+        { nazwa: "Historia", pytania: [
+          { kwota: 200, pytanie: "Rok chrztu Polski", odpowiedz: "966", kto: 3 },
+          { kwota: 400, pytanie: "Pierwszy koronowany król Polski", odpowiedz: "Bolesław Chrobry", kto: 1 },
+          { kwota: 600, pytanie: "Bitwa stoczona w 1410 roku", odpowiedz: "Grunwald", kto: 2, premia: true }
+        ]},
+        { nazwa: "Sport", pytania: [
+          { kwota: 200, pytanie: "Dyscyplina, w której gra Robert Lewandowski", odpowiedz: "piłka nożna", kto: 3 },
+          { kwota: 400, pytanie: "Tylu zawodników liczy drużyna siatkarska na boisku", odpowiedz: "sześciu", kto: 3 },
+          { kwota: 600, pytanie: "Miasto – gospodarz Igrzysk Olimpijskich 2024", odpowiedz: "Paryż", kto: 0, zle: [1, 2] }
+        ]},
+        { nazwa: "Kultura", pytania: [
+          { kwota: 200, pytanie: "Autor „Pana Tadeusza”", odpowiedz: "Adam Mickiewicz", kto: 2 },
+          { kwota: 400, pytanie: "Polska laureatka literackiego Nobla z 2018 roku", odpowiedz: "Olga Tokarczuk", kto: 1 },
+          { kwota: 600, pytanie: "Reżyser filmu „Pianista”", odpowiedz: "Roman Polański", kto: 3 }
+        ]}
+      ],
+      wyniki: [1000, 600, 1400]   // po jednej liczbie na zawodnika, w kolejności z listy zawodników
+    },
+    {
+      nazwa: "Runda 2",
+      kategorie: [
+        { nazwa: "Nauka", pytania: [
+          { kwota: 400,  pytanie: "Symbol chemiczny złota", odpowiedz: "Au", kto: 1 },
+          { kwota: 800,  pytanie: "Planeta nazywana Czerwoną Planetą", odpowiedz: "Mars", kto: 3 },
+          { kwota: 1200, pytanie: "Twórca teorii względności", odpowiedz: "Albert Einstein", kto: 2 }
+        ]},
+        { nazwa: "Film", pytania: [
+          { kwota: 400,  pytanie: "Reżyser „Seksmisji”", odpowiedz: "Juliusz Machulski", kto: 3 },
+          { kwota: 800,  pytanie: "Film Wojciecha Smarzowskiego o weselu", odpowiedz: "„Wesele”", kto: 1, premia: true },
+          { kwota: 1200, pytanie: "Polski film nagrodzony Oscarem w 2015 roku", odpowiedz: "„Ida”", kto: 0, zle: [2] }
+        ]},
+        { nazwa: "Język", pytania: [
+          { kwota: 400,  pytanie: "Przeciwieństwo słowa „ciepły”", odpowiedz: "zimny", kto: 2 },
+          { kwota: 800,  pytanie: "Tyle liter ma polski alfabet", odpowiedz: "32", kto: 1 },
+          { kwota: 1200, pytanie: "Język urzędowy Czech", odpowiedz: "czeski", kto: 3 }
+        ]}
+      ],
+      wyniki: [3000, 1000, 3800]
+    }
+  ],
+
+  final: {
+    kategoria: "Zwierzęta",
+    pytanie: "Największe zwierzę lądowe świata",
+    odpowiedz: "słoń",
+    wyniki: [
+      { zawodnik: 1, odpowiedz: "słoń",   zaklad: 1500, poprawnie: true,  wynik: 4500, uwagi: "2. miejsce" },
+      { zawodnik: 2, odpowiedz: "żyrafa", zaklad: 1000, poprawnie: false, wynik: 0,    uwagi: "3. miejsce" },
+      { zawodnik: 3, odpowiedz: "słoń",   zaklad: 2000, poprawnie: true,  wynik: 5800, uwagi: "zwycięzca" }
+    ]
+  }
+};
+</script>
+<script src="recap.js"></script>
+</body>
+</html>

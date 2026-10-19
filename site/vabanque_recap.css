@@ -1,0 +1,49 @@
+/* recap.css – strony odcinków TeleStats. Wczytywać PO styles.css */
+:root{--bg:#04101f;--panel:#07172b;--panel2:#091c34;--bar:#102a4d;--line:#46607f;--line2:#28405f;
+--gold:#e6b94e;--gold2:#f4cd68;--text:#f5f7fa;--soft:#aebbd0;--mute:#71839d;
+--p1:#3ecf8e;--p2:#5b9dff;--p3:#f06fb0;--p0:#ff5d4d}
+body{background:var(--bg);color:var(--soft);font:13px/1.45 var(--font-family-arimo),Arial,sans-serif}
+a{color:var(--gold2);text-decoration:none}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.brand{font-size:30px;font-weight:700;letter-spacing:-1px;color:#fff}.brand b{color:var(--gold)}
+.nav a{margin-left:14px;font:700 10px var(--font-family-roboto-mono),monospace}
+h1{color:#fff;font-size:22px;margin:4px 0}
+.sub{color:var(--mute)}.note{color:var(--p0);font-weight:700;margin-top:6px}
+.card{background:var(--panel);border:1px solid var(--line);margin:16px 0}
+.bar{background:var(--bar);color:#fff;font-weight:700;font-size:14px;letter-spacing:.7px;padding:7px 10px;border-bottom:1px solid var(--line)}
+.pad{padding:10px 12px}.pad p{margin:4px 0}.pad b{color:var(--text)}
+h3{color:var(--soft);font-size:12px;margin:14px 12px 6px}
+.prevnext{display:flex;justify-content:space-between;margin-top:12px;font-size:12px}
+/* pasek z checkboxami (przykleja się do góry ekranu) */
+.tools{position:sticky;top:0;z-index:5;background:var(--panel2);border:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center}
+.tools label{color:var(--text);cursor:pointer}.tools input{margin-right:6px;accent-color:var(--gold)}
+.legend{display:none;flex-wrap:wrap;gap:4px 14px;width:100%;font-size:12px}
+.show-who .legend{display:flex}
+.sw{display:inline-block;width:12px;height:12px;margin-right:5px;vertical-align:-1px}
+/* plansza */
+.scroll{overflow-x:auto}
+table.board{border-collapse:collapse;width:100%;min-width:760px;table-layout:fixed}
+th.cat{background:var(--bar);color:#fff;border:1px solid var(--line2);padding:10px 6px;text-align:center;font-size:12px;text-transform:uppercase}
+td.clue{border:1px solid var(--line2);vertical-align:top;height:104px;padding:6px 8px;background:var(--panel);cursor:pointer;position:relative}
+td.clue:focus-visible{outline:2px solid var(--gold2);outline-offset:-2px}
+.val{color:var(--gold2);font:700 12px var(--font-family-roboto-mono),monospace}
+.q{margin-top:4px}.a{display:none;margin-top:4px;color:var(--text)}
+.ans{display:block;font-weight:700;color:var(--gold2)}
+.meta{display:block;margin-top:6px;font-size:11px;color:var(--mute)}
+td.clue.open .q{display:none}td.clue.open .a{display:block}
+@media (hover:hover){td.clue:hover .q{display:none}td.clue:hover .a{display:block}}
+/* checkbox 1: kto odpowiedział poprawnie */
+.show-who td[data-w="1"]{--c:var(--p1)}.show-who td[data-w="2"]{--c:var(--p2)}
+.show-who td[data-w="3"]{--c:var(--p3)}.show-who td[data-w="0"]{--c:var(--p0)}
+.show-who td.clue[data-w]{background:color-mix(in srgb,var(--c) 24%,var(--panel));box-shadow:inset 5px 0 0 var(--c)}
+/* checkbox 2: premia */
+.show-premia td[data-premia]{outline:2px solid var(--gold);outline-offset:-3px}
+.show-premia td[data-premia] .val::after{content:" ★ PREMIA";color:var(--gold)}
+/* wyniki */
+table.scores{border-collapse:collapse;margin:0 12px 12px;min-width:50%}
+table.scores th,table.scores td{border:1px solid var(--line2);padding:6px 12px;text-align:left}
+table.scores th{background:var(--panel2);color:var(--soft)}
+table.scores td{color:var(--text);font-weight:700}.neg{color:var(--p0)!important}
+.ok{color:var(--p1)}.bad{color:var(--p0)}
+.foot{margin-top:28px;border-top:1px solid var(--line);padding-top:10px;font-size:11px;color:var(--mute)}
