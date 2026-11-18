@@ -120,22 +120,31 @@ h3 { margin: 16px 16px 4px; font-size: 14px; color: var(--muted); }
 }
 
 /* ---------- boards ---------- */
-.boardwrap { overflow-x: auto; padding: 12px 16px 0; }
-table.board {
-  width: 100%; min-width: 900px;
-  table-layout: fixed;
-  border-collapse: separate; border-spacing: 3px;
+/* A CSS grid: every box in a row is as tall as the tallest box in that row,
+   and a box grows to fit its text, so nothing is ever cut off or scrolled. */
+.boardwrap { padding: 12px 16px 0; }
+.board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
+  gap: 3px; padding: 3px;
   background: var(--bg);
 }
-.board th {
-  height: 64px; padding: 8px;
+.cat {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 64px; padding: 8px;
   background: var(--board-head);
   border-bottom: 2px solid var(--gold);
-  font-size: 13px; line-height: 1.25; text-align: center;
+  font-size: 13px; font-weight: 700; line-height: 1.25; text-align: center;
+  overflow-wrap: break-word;
 }
-.cell { background: var(--board); padding: 0; vertical-align: top; height: 1px; }
+.cell { display: flex; min-width: 0; background: var(--board); }
 .cell.empty { background: var(--panel2); }
-.clue { display: flex; flex-direction: column; height: 100%; min-height: 118px; }
+.clue { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 118px; }
+/* only on narrow screens (phones, small windows) six columns cannot fit, so the board scrolls sideways */
+@media (max-width: 860px) {
+  .boardwrap { overflow-x: auto; }
+  .board { min-width: 740px; }
+}
 .clue-head {
   position: relative;
   display: flex; justify-content: center; align-items: baseline;
@@ -152,10 +161,10 @@ table.board {
 }
 
 /* question and answer share one grid cell, so hovering never changes the box size */
-.clue-body { flex: 1; display: grid; place-items: center; padding: 8px; text-align: center; }
+.clue-body { flex: 1; min-width: 0; display: grid; place-items: center; padding: 8px; text-align: center; }
 .clue-body > * { grid-area: 1 / 1; }
-.q { font-size: 13px; line-height: 1.35; }
-.a { visibility: hidden; font-size: 12px; }
+.q { font-size: 13px; line-height: 1.35; overflow-wrap: break-word; }
+.a { visibility: hidden; font-size: 12px; overflow-wrap: break-word; }
 .clue.pinned .q { visibility: hidden; }
 .clue.pinned .a { visibility: visible; }
 @media (hover: hover) {
@@ -546,22 +555,21 @@ function vabanque_renderCell(c) {
     for (const w of c.wrong) answer += `<div class="line bad">\u2717 ${esc(w.label)}: ${esc(answerText(w.answer))}</div>`;
     if (!c.rightLabel) answer += `<div class="line bad">Brak poprawnej odpowiedzi</div>`;
   }
-  return `<td class="cell ${klass}"><div class="clue">
+  return `<div class="cell ${klass}"><div class="clue">
     <div class="clue-head" tabindex="0" role="button" aria-pressed="false" title="Pokaż odpowiedź">
       <span class="stake${q.pytanie_premia ? " premia" : ""}">${fmtZl(q.pytanie_stawka)}</span>
       <span class="order">${c.order ?? ""}</span>
     </div>
     <div class="clue-body"><div class="q">${esc(q.pytanie_tresc)}</div><div class="a">${answer}</div></div>
-  </div></td>`;
+  </div></div>`;
 }
 
 function vabanque_renderBoard(round) {
-  const head = round.cats.map(c => `<th scope="col">${esc(c.name)}</th>`).join("");
-  let body = "";
+  let html = round.cats.map(c => `<div class="cat">${esc(c.name)}</div>`).join("");
   for (let r = 0; r < round.rows; r++) {
-    body += "<tr>" + round.cats.map(c => c.cells[r] ? vabanque_renderCell(c.cells[r]) : `<td class="cell empty"></td>`).join("") + "</tr>";
+    html += round.cats.map(c => c.cells[r] ? vabanque_renderCell(c.cells[r]) : `<div class="cell empty"></div>`).join("");
   }
-  return `<div class="boardwrap"><table class="board"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="boardwrap"><div class="board" style="--cols:${round.cats.length}" role="group" aria-label="Plansza ${round.number}. rundy">${html}</div></div>`;
 }
 
 function vabanque_renderScores(m, title, scores) {
