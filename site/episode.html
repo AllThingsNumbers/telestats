@@ -68,7 +68,16 @@ a { color: var(--gold2); }
   box-shadow: 0 8px 24px rgba(0,0,0,.5);
   padding-bottom: 24px;
 }
-.foot { max-width: 1100px; margin: 0 auto 40px; padding: 0 16px; font-size: 11px; color: var(--dim); }
+.foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 24px;
+  max-width: 1100px; margin: 0 auto 40px; padding: 0 16px;
+  font-size: 11px; color: var(--dim);
+}
+.foot a {
+  font-family: "Roboto Mono", Consolas, "Courier New", monospace;
+  font-weight: 700; color: var(--gold2); text-decoration: none;
+}
+.foot a:hover { text-decoration: underline; }
 
 .status { padding: 32px 24px; color: var(--muted); }
 .status.error { color: var(--bad); }
@@ -124,11 +133,12 @@ table.board {
   border-bottom: 2px solid var(--gold);
   font-size: 13px; line-height: 1.25; text-align: center;
 }
-.cell { background: var(--board); padding: 0; vertical-align: top; }
+.cell { background: var(--board); padding: 0; vertical-align: top; height: 1px; }
 .cell.empty { background: var(--panel2); }
-.clue { min-height: 118px; }
+.clue { display: flex; flex-direction: column; height: 100%; min-height: 118px; }
 .clue-head {
-  display: flex; justify-content: space-between; align-items: baseline;
+  position: relative;
+  display: flex; justify-content: center; align-items: baseline;
   padding: 5px 8px;
   background: rgba(0,0,0,.28);
   cursor: pointer; user-select: none;
@@ -136,10 +146,13 @@ table.board {
 .clue-head:focus-visible { outline: 2px solid var(--gold2); outline-offset: -2px; }
 .stake { color: var(--gold2); font-size: 15px; font-variant-numeric: tabular-nums; }
 .stake.premia { color: var(--premia); font-weight: 700; }
-.order { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.order {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums;
+}
 
 /* question and answer share one grid cell, so hovering never changes the box size */
-.clue-body { display: grid; padding: 8px; }
+.clue-body { flex: 1; display: grid; place-items: center; padding: 8px; text-align: center; }
 .clue-body > * { grid-area: 1 / 1; }
 .q { font-size: 13px; line-height: 1.35; }
 .a { visibility: hidden; font-size: 12px; }
@@ -238,27 +251,24 @@ table.scores { border-collapse: collapse; margin: 4px 0 0; }
   </article>
 </main>
 
-<footer class="foot">TeleStats jest fanowskim archiwum polskich teleturniejów. Materiały i nazwy programów należą do ich właścicieli.</footer>
+<footer class="foot">
+  <span>TeleStats jest fanowskim archiwum polskich teleturniejów. Materiały i nazwy programów należą do ich właścicieli.</span>
+  <a id="report-link" href="zglosblad.html">Zgłoś błąd</a>
+</footer>
 
 <noscript><p class="status error">Ta strona wymaga włączonego JavaScriptu.</p></noscript>
 
 <script>
 /* =====================================================================
-   SETTINGS: the only part you normally need to touch
+   SETTINGS
    ===================================================================== */
 const SUPABASE_URL = "https://eryzdoojjxnkpmcyaprp.supabase.co";
 const SUPABASE_KEY = "sb_publishable_yDhRhsjQd0GTgc8w7GEozg_jQ2yXupq";   // public "publishable" key – safe in a website
 
-// show_id in the address -> table prefix in Supabase. Add 1 z 10, Familiada etc. here later.
-const SHOWS = {
-  1: { prefix: "vabanque", name: "Va Banque" }
-};
-
-const COUNT_FINAL_IN_STATS = false;       // true = the final question also counts in "Poprawne / Błędne"
-const ORDER_RESTARTS_EACH_ROUND = true;   // true = order badge 1-30 in each round (like J-Archive); false = 1-60 across the episode
+// To add another show (Familiada, 1 z 10 ...) see the SHOW REGISTRY near the bottom of this script.
 
 /* =====================================================================
-   SMALL HELPERS
+   SHARED HELPERS (used by every show – no prefix)
    ===================================================================== */
 const NBSP = "\u00A0";
 const WEEKDAYS = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
@@ -283,9 +293,32 @@ function lowerFirst(s) {
   return /^[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
 }
 
-/* =====================================================================
-   FETCHING FROM SUPABASE (plain REST call, no libraries needed)
-   ===================================================================== */
+// A player who buzzed in but gave no answer is stored as NULL (or empty) in Supabase
+function answerText(a) {
+  const s = String(a ?? "").trim();
+  return !s || s.toLowerCase() === "null" ? "bez odpowiedzi" : s;
+}
+
+// Clicking (or pressing Enter/Space on) a stake pins its answer open – handy on phones, where there is no hover
+function enableRevealOnClick(container) {
+  const toggle = head => {
+    const open = head.parentElement.classList.toggle("pinned");
+    head.setAttribute("aria-pressed", String(open));
+  };
+  container.addEventListener("click", ev => {
+    const head = ev.target.closest(".clue-head");
+    if (head) toggle(head);
+  });
+  container.addEventListener("keydown", ev => {
+    const head = ev.target.closest && ev.target.closest(".clue-head");
+    if (head && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); toggle(head); }
+  });
+}
+
+function fail(app, title, detail) {
+  app.innerHTML = `<p class="status error">${esc(title)}${detail ? `<small>${esc(detail)}</small>` : ""}</p>`;
+}
+
 async function sb(table, query) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
     headers: { apikey: SUPABASE_KEY, Accept: "application/json" }
@@ -295,9 +328,36 @@ async function sb(table, query) {
 }
 
 /* =====================================================================
-   TURNING RAW ROWS INTO ONE "MODEL" OBJECT
+   VA BANQUE  (show_id=1)
+   Everything starting with vabanque_ / VABANQUE_ is used only for this show.
    ===================================================================== */
-function buildModel({ showId, show, odc, gracze, pytania, przebieg, hasPrev, hasNext }) {
+const VABANQUE_COUNT_FINAL_IN_STATS = false;       // true = the final question also counts in "Poprawne / Błędne"
+const VABANQUE_ORDER_RESTARTS_EACH_ROUND = true;   // true = order badge 1-30 in each round (like J-Archive); false = 1-60 across the episode
+
+// 1) fetch everything one episode needs. Returns the finished model, or null if the episode does not exist.
+async function vabanque_load(ep, showId) {
+  const t = name => `vabanque_${name}`;
+  const [odcRows, pytania, przebieg, neighbours] = await Promise.all([
+    sb(t("odcinki"), `odcinek_id=eq.${ep}`),
+    sb(t("pytania"), `odcinek_id=eq.${ep}&order=pytanie_id.asc`),
+    sb(t("przebieg"), `odcinek_id=eq.${ep}&order=kolejnosc_w_odcinku.asc,zdarzenie_id.asc`),
+    sb(t("odcinki"), `select=odcinek_id&odcinek_id=in.(${ep - 1},${ep + 1})`)
+  ]);
+  if (!odcRows.length) return null;
+
+  const odc = odcRows[0];
+  const gracze = await sb(t("gracze"), `gracz_id=in.(${[odc.gracz_1, odc.gracz_2, odc.gracz_3].join(",")})`);
+
+  return vabanque_buildModel({
+    showId, showName: SHOWS[showId].name, odc, gracze, pytania, przebieg,
+    hasPrev: neighbours.some(r => Number(r.odcinek_id) === ep - 1),
+    hasNext: neighbours.some(r => Number(r.odcinek_id) === ep + 1)
+  });
+}
+
+// 2) vabanque_buildModel + the vabanque_render... functions follow
+
+function vabanque_buildModel({ showId, showName, odc, gracze, pytania, przebieg, hasPrev, hasNext }) {
   const epId = Number(odc.odcinek_id);
   const warnings = [];
 
@@ -373,7 +433,7 @@ function buildModel({ showId, show, odc, gracze, pytania, przebieg, hasPrev, has
       const prem = premiaIds.has(e.pytanie_id);
       if (e.odpowiedz_poprawna) { s.right++; if (prem) s.rightPremia++; }
       else { s.wrong++; if (prem) s.wrongPremia++; }
-    } else if (e.typ_zdarzenia === "final" && COUNT_FINAL_IN_STATS) {
+    } else if (e.typ_zdarzenia === "final" && VABANQUE_COUNT_FINAL_IN_STATS) {
       if (e.final_poprawna) s.right++; else s.wrong++;
     }
   }
@@ -407,7 +467,7 @@ function buildModel({ showId, show, odc, gracze, pytania, przebieg, hasPrev, has
     const orderOf = new Map();
     qs.filter(q => outcomes.get(q.pytanie_id).asked)
       .sort((a, b) => outcomes.get(a.pytanie_id).firstOrder - outcomes.get(b.pytanie_id).firstOrder)
-      .forEach((q, i) => orderOf.set(q.pytanie_id, ORDER_RESTARTS_EACH_ROUND ? i + 1 : outcomes.get(q.pytanie_id).firstOrder));
+      .forEach((q, i) => orderOf.set(q.pytanie_id, VABANQUE_ORDER_RESTARTS_EACH_ROUND ? i + 1 : outcomes.get(q.pytanie_id).firstOrder));
 
     const cats = [...groups.values()].map(cells => ({
       name: cells[0].pytanie_kategoria,
@@ -435,7 +495,7 @@ function buildModel({ showId, show, odc, gracze, pytania, przebieg, hasPrev, has
   players[0].winnings = Number(odc.gracz_1_wygrana || 0);
 
   return {
-    showName: show.name, host: odc.odcinek_prowadzacy || "",
+    showName, host: odc.odcinek_prowadzacy || "",
     title: `Odcinek #${epId} - ${fmtDate(odc.odcinek_data)}`,
     epId, showId, players,
     prevHref: hasPrev ? `episode.html?show_id=${showId}&episode_id=${epId - 1}` : null,
@@ -449,10 +509,8 @@ function buildModel({ showId, show, odc, gracze, pytania, przebieg, hasPrev, has
   };
 }
 
-/* =====================================================================
-   RENDERING (each function returns an HTML string)
-   ===================================================================== */
-function renderContestants(m) {
+
+function vabanque_renderContestants(m) {
   const line = p => {
     const parts = [`<b>${esc(p.first)} ${esc(p.last)}</b>`];
     if (p.job) parts.push(esc(lowerFirst(p.job)));
@@ -477,7 +535,7 @@ function renderContestants(m) {
   </section>`;
 }
 
-function renderCell(c) {
+function vabanque_renderCell(c) {
   const q = c.q;
   const klass = !c.asked ? "kx" : c.rightStation ? `k${c.rightStation}` : "kn";
   let answer = `<div class="ans">${esc(q.pytanie_odpowiedz)}</div>`;
@@ -485,7 +543,7 @@ function renderCell(c) {
     answer += `<div class="line dim">Pytanie nie zostało zadane</div>`;
   } else {
     if (c.rightLabel) answer += `<div class="line ok">\u2713 ${esc(c.rightLabel)}</div>`;
-    for (const w of c.wrong) answer += `<div class="line bad">\u2717 ${esc(w.label)}: ${esc(w.answer)}</div>`;
+    for (const w of c.wrong) answer += `<div class="line bad">\u2717 ${esc(w.label)}: ${esc(answerText(w.answer))}</div>`;
     if (!c.rightLabel) answer += `<div class="line bad">Brak poprawnej odpowiedzi</div>`;
   }
   return `<td class="cell ${klass}"><div class="clue">
@@ -497,22 +555,22 @@ function renderCell(c) {
   </div></td>`;
 }
 
-function renderBoard(round) {
+function vabanque_renderBoard(round) {
   const head = round.cats.map(c => `<th scope="col">${esc(c.name)}</th>`).join("");
   let body = "";
   for (let r = 0; r < round.rows; r++) {
-    body += "<tr>" + round.cats.map(c => c.cells[r] ? renderCell(c.cells[r]) : `<td class="cell empty"></td>`).join("") + "</tr>";
+    body += "<tr>" + round.cats.map(c => c.cells[r] ? vabanque_renderCell(c.cells[r]) : `<td class="cell empty"></td>`).join("") + "</tr>";
   }
   return `<div class="boardwrap"><table class="board"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
-function renderScores(m, title, scores) {
+function vabanque_renderScores(m, title, scores) {
   const names = m.players.map(p => `<th class="k${p.station}">${esc(p.label)}</th>`).join("");
   const vals = scores.map(v => `<td class="val${v < 0 ? " neg" : ""}">${fmtZl(v)}</td>`).join("");
   return `<h3>${title}</h3><div class="tablewrap"><table class="scores"><tr>${names}</tr><tr>${vals}</tr></table></div>`;
 }
 
-function renderFinal(m) {
+function vabanque_renderFinal(m) {
   if (!m.finalQ) return "";
   const q = m.finalQ;
   const box = `<div class="finalbox"><div class="clue">
@@ -522,13 +580,13 @@ function renderFinal(m) {
 
   const names = m.players.map(p => `<th class="k${p.station}">${esc(p.label)}</th>`).join("");
   const cells = m.finalByStation.map(e => e
-    ? `<td><div class="wager">Stawka: ${fmtZl(e.final_stawka)}</div><div class="resp ${e.final_poprawna ? "ok" : "bad"}">${esc(e.final_odpowiedz || "brak odpowiedzi")}</div></td>`
+    ? `<td><div class="wager">Stawka: ${fmtZl(e.final_stawka)}</div><div class="resp ${e.final_poprawna ? "ok" : "bad"}">${esc(answerText(e.final_odpowiedz))}</div></td>`
     : `<td><div class="na">brak udziału w finale</div></td>`).join("");
   return `<section><div class="bar"><h2>Pytanie finałowe:</h2></div>${box}
     <div class="tablewrap" style="margin-top:12px"><table class="scores"><tr>${names}</tr><tr>${cells}</tr></table></div></section>`;
 }
 
-function renderFinalScores(m) {
+function vabanque_renderFinalScores(m) {
   const names = m.players.map(p => `<th class="k${p.station}">${esc(p.label)}</th>`).join("");
   const vals = m.finalScores.map(v => `<td class="val${v < 0 ? " neg" : ""}">${fmtZl(v)}</td>`).join("");
   const remarks = m.stats.map((s, i) => {
@@ -540,7 +598,7 @@ function renderFinalScores(m) {
   return `<h3>Wynik końcowy:</h3><div class="tablewrap"><table class="scores"><tr>${names}</tr><tr>${vals}</tr><tr>${remarks}</tr></table></div>`;
 }
 
-function renderChart(m) {
+function vabanque_renderChart(m) {
   const n = m.series[0].length - 1;
   if (n < 1) return `<p class="hint">Brak danych do wykresu.</p>`;
   const W = 900, H = 380, L = 64, R = 88, T = 26, B = 46;
@@ -602,94 +660,82 @@ function renderChart(m) {
   return `<div class="keyline">${key}</div><div class="chartwrap">${svg}</div>`;
 }
 
-function renderPage(m) {
+function vabanque_renderPage(m) {
   let html = `<div class="titleblock"><h1>${esc(m.title)}</h1>
     <p class="subtle">${esc(m.showName)}${m.host ? `, prowadzący: ${esc(m.host)}` : ""}</p></div>`;
-  html += renderContestants(m);
+  html += vabanque_renderContestants(m);
 
   m.rounds.forEach((round, i) => {
     if (!round) return;
     const r = i + 1;
     html += `<section><div class="bar"><h2>${r}. runda</h2></div>`;
     if (r === 1) html += `<p class="hint">Najedź kursorem na stawkę (lub dotknij jej), aby zobaczyć odpowiedź. Czerwona, pogrubiona stawka oznacza premię, a liczba w rogu to kolejność wyboru pytania.</p>`;
-    html += renderBoard(round);
-    if (m.roundScores[r]) html += renderScores(m, `Wynik na koniec ${r}. rundy:`, m.roundScores[r]);
+    html += vabanque_renderBoard(round);
+    if (m.roundScores[r]) html += vabanque_renderScores(m, `Wynik na koniec ${r}. rundy:`, m.roundScores[r]);
     html += `</section>`;
   });
 
-  html += renderFinal(m);
-  html += renderFinalScores(m);
-  html += `<section><div class="bar"><h2>Dynamika gry:</h2></div>${renderChart(m)}</section>`;
+  html += vabanque_renderFinal(m);
+  html += vabanque_renderFinalScores(m);
+  html += `<section><div class="bar"><h2>Dynamika gry:</h2></div>${vabanque_renderChart(m)}</section>`;
   html += `<label class="hlbox"><input type="checkbox" id="hl"> Podświetl pytania wg odpowiadających</label>`;
   return html;
 }
 
-function renderLegend(m) {
+function vabanque_renderLegend(m) {
   return `<span>Kolor pytania = kto odpowiedział poprawnie:</span>` +
     m.players.map(p => `<span class="lg"><i class="sw k${p.station}"></i>${esc(p.label)}</span>`).join("") +
     `<span class="lg"><i class="sw kn"></i>Brak poprawnej odpowiedzi</span>`;
 }
 
-/* =====================================================================
-   PAGE LOGIC
-   ===================================================================== */
-function fail(app, title, detail) {
-  app.innerHTML = `<p class="status error">${esc(title)}${detail ? `<small>${esc(detail)}</small>` : ""}</p>`;
+// 3) things to switch on after the HTML is on the page (legend, checkbox, click-to-pin)
+function vabanque_afterRender(model) {
+  const legend = document.getElementById("legend");
+  legend.innerHTML = vabanque_renderLegend(model);
+  document.getElementById("hl").addEventListener("change", ev => {
+    document.getElementById("sheet").classList.toggle("hl", ev.target.checked);
+    legend.hidden = !ev.target.checked;
+  });
+  enableRevealOnClick(document.getElementById("app"));
 }
 
+/* =====================================================================
+   SHOW REGISTRY – this is what connects show_id in the address to the right functions
+   To add a show: write <prefix>_load, <prefix>_renderPage and <prefix>_afterRender (copy the Va Banque ones),
+   then add one line below.
+   ===================================================================== */
+const SHOWS = {
+  1: { name: "Va Banque", load: vabanque_load, render: vabanque_renderPage, afterRender: vabanque_afterRender }
+  // 2: { name: "Familiada", load: familiada_load, render: familiada_renderPage, afterRender: familiada_afterRender },
+  // 3: { name: "1 z 10",    load: jedenz10_load,  render: jedenz10_renderPage,  afterRender: jedenz10_afterRender },
+};
+
+/* =====================================================================
+   PAGE LOGIC (the same for every show)
+   ===================================================================== */
 async function init() {
   const app = document.getElementById("app");
   try {
     const params = new URLSearchParams(window.location.search);
     const showId = params.get("show_id");
     const epRaw = params.get("episode_id");
+    const example = "episode.html?show_id=1&episode_id=1115";
+
+    if (!Object.prototype.hasOwnProperty.call(SHOWS, showId)) return fail(app, "Nieznany program.", `Adres powinien wyglądać tak: ${example}`);
+    if (!/^\d+$/.test(epRaw || "")) return fail(app, "Brak numeru odcinka.", `Adres powinien wyglądać tak: ${example}`);
     const show = SHOWS[showId];
-    if (!show) return fail(app, "Nieznany program.", `Adres powinien wyglądać tak: episode.html?show_id=1&episode_id=1115`);
-    if (!/^\d+$/.test(epRaw || "")) return fail(app, "Brak numeru odcinka.", `Adres powinien wyglądać tak: episode.html?show_id=1&episode_id=1115`);
-
     const ep = Number(epRaw);
-    const t = name => `${show.prefix}_${name}`;
-    const [odcRows, pytania, przebieg, neighbours] = await Promise.all([
-      sb(t("odcinki"), `odcinek_id=eq.${ep}`),
-      sb(t("pytania"), `odcinek_id=eq.${ep}&order=pytanie_id.asc`),
-      sb(t("przebieg"), `odcinek_id=eq.${ep}&order=kolejnosc_w_odcinku.asc,zdarzenie_id.asc`),
-      sb(t("odcinki"), `select=odcinek_id&odcinek_id=in.(${ep - 1},${ep + 1})`)
-    ]);
-    if (!odcRows.length) return fail(app, `Nie znaleziono odcinka #${ep} w bazie.`, "");
 
-    const odc = odcRows[0];
-    const gracze = await sb(t("gracze"), `gracz_id=in.(${[odc.gracz_1, odc.gracz_2, odc.gracz_3].join(",")})`);
+    // the "Zgłoś błąd" link in the footer carries the episode, so the report page can pre-fill it later
+    document.getElementById("report-link").href = `zglosblad.html?show_id=${showId}&episode_id=${ep}`;
 
-    const model = buildModel({
-      showId, show, odc, gracze, pytania, przebieg,
-      hasPrev: neighbours.some(r => Number(r.odcinek_id) === ep - 1),
-      hasNext: neighbours.some(r => Number(r.odcinek_id) === ep + 1)
-    });
-    if (model.warnings.length) console.warn("TeleStats – uwagi do danych:", model.warnings);
+    const model = await show.load(ep, showId);
+    if (!model) return fail(app, `Nie znaleziono odcinka #${ep} w bazie.`, "");
+    if (model.warnings && model.warnings.length) console.warn("TeleStats – uwagi do danych:", model.warnings);
 
     document.title = `${show.name} – odcinek #${ep} – TeleStats`;
-    app.innerHTML = renderPage(model);
-
-    const legend = document.getElementById("legend");
-    legend.innerHTML = renderLegend(model);
-    document.getElementById("hl").addEventListener("change", ev => {
-      document.getElementById("sheet").classList.toggle("hl", ev.target.checked);
-      legend.hidden = !ev.target.checked;
-    });
-
-    // click / Enter on a stake pins the answer open (handy on phones)
-    const toggle = head => {
-      const open = head.parentElement.classList.toggle("pinned");
-      head.setAttribute("aria-pressed", String(open));
-    };
-    app.addEventListener("click", ev => {
-      const head = ev.target.closest(".clue-head");
-      if (head) toggle(head);
-    });
-    app.addEventListener("keydown", ev => {
-      const head = ev.target.closest && ev.target.closest(".clue-head");
-      if (head && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); toggle(head); }
-    });
+    app.innerHTML = show.render(model);
+    show.afterRender(model);
   } catch (err) {
     console.error(err);
     fail(app, "Nie udało się pobrać danych. Odśwież stronę lub spróbuj ponownie później.", String(err.message || err));
@@ -697,7 +743,8 @@ async function init() {
 }
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildModel, renderPage, renderLegend, fmtNum, fmtDate };   // lets the page be tested outside a browser
+  // lets the page be tested outside a browser
+  module.exports = { SHOWS, vabanque_buildModel, vabanque_renderPage, vabanque_renderLegend, vabanque_renderChart, answerText, fmtNum, fmtDate };
 } else {
   init();
 }
