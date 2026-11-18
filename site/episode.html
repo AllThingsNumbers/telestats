@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeleStats – odcinek</title>
+<style>
+:root {
+  --bg: #04101F;
+  --panel: #07172B;
+  --panel2: #091C34;
+  --bar: #102A4D;
+  --line: #46607F;
+  --line2: #28405F;
+  --gold: #E6B94E;
+  --gold2: #F4CD68;
+  --text: #F5F7FA;
+  --muted: #AEBBD0;
+  --dim: #71839D;
+
+  --board: #0A2260;
+  --board-head: #06163F;
+  --ans: #5CC8FF;
+  --ok: #9BEBA8;
+  --bad: #FF8F8F;
+  --premia: #FF5A5A;
+
+  /* player colours (station 1, 2, 3) and "nobody" */
+  --c1: #F4B942;
+  --c2: #38BDF8;
+  --c3: #F472B6;
+  --cn: #AEBBD0;
+  /* darker tints used as cell backgrounds in highlight mode */
+  --t1: #5A4310;
+  --t2: #0C4E70;
+  --t3: #6A2148;
+  --tn: #2B3441;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arimo, Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+a { color: var(--gold2); }
+
+/* ---------- page frame ---------- */
+.masthead {
+  display: flex; align-items: baseline; gap: 14px;
+  padding: 10px 24px;
+  background: #091C34;
+  border-bottom: 2px solid var(--line);
+}
+.brand { text-decoration: none; font-size: 24px; font-weight: 700; letter-spacing: -0.04em; }
+.b-tele { color: #fff; }
+.b-stats { color: var(--gold); }
+.tagline { font-size: 11px; letter-spacing: .03em; color: var(--muted); }
+
+.page { max-width: 1100px; margin: 24px auto 40px; padding: 0 16px; }
+.sheet {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  padding-bottom: 24px;
+}
+.foot { max-width: 1100px; margin: 0 auto 40px; padding: 0 16px; font-size: 11px; color: var(--dim); }
+
+.status { padding: 32px 24px; color: var(--muted); }
+.status.error { color: var(--bad); }
+.status small { display: block; margin-top: 6px; color: var(--dim); }
+
+/* ---------- headings ---------- */
+.titleblock { padding: 18px 16px 6px; }
+h1 { margin: 0; font-size: 24px; line-height: 1.2; }
+.subtle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.bar {
+  margin-top: 18px;
+  padding: 6px 12px;
+  background: var(--bar);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.bar h2 { margin: 0; font-size: 14px; letter-spacing: .05em; }
+h3 { margin: 16px 16px 4px; font-size: 14px; color: var(--muted); }
+.hint { margin: 8px 16px 0; font-size: 12px; color: var(--dim); }
+
+/* ---------- contestants + prev/next ---------- */
+.cgrid {
+  display: grid;
+  grid-template-columns: 170px 1fr 170px;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 16px 4px;
+}
+.clist { margin: 0; padding: 0; list-style: none; }
+.clist li { margin: 0 0 6px; }
+.nav {
+  font-family: "Roboto Mono", Consolas, "Courier New", monospace;
+  font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.nav.r { text-align: right; }
+.nav.off { color: var(--line); cursor: default; }
+@media (max-width: 700px) {
+  .cgrid { grid-template-columns: 1fr 1fr; }
+  .clist { grid-column: 1 / -1; order: 3; }
+}
+
+/* ---------- boards ---------- */
+.boardwrap { overflow-x: auto; padding: 12px 16px 0; }
+table.board {
+  width: 100%; min-width: 900px;
+  table-layout: fixed;
+  border-collapse: separate; border-spacing: 3px;
+  background: var(--bg);
+}
+.board th {
+  height: 64px; padding: 8px;
+  background: var(--board-head);
+  border-bottom: 2px solid var(--gold);
+  font-size: 13px; line-height: 1.25; text-align: center;
+}
+.cell { background: var(--board); padding: 0; vertical-align: top; }
+.cell.empty { background: var(--panel2); }
+.clue { min-height: 118px; }
+.clue-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 5px 8px;
+  background: rgba(0,0,0,.28);
+  cursor: pointer; user-select: none;
+}
+.clue-head:focus-visible { outline: 2px solid var(--gold2); outline-offset: -2px; }
+.stake { color: var(--gold2); font-size: 15px; font-variant-numeric: tabular-nums; }
+.stake.premia { color: var(--premia); font-weight: 700; }
+.order { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* question and answer share one grid cell, so hovering never changes the box size */
+.clue-body { display: grid; padding: 8px; }
+.clue-body > * { grid-area: 1 / 1; }
+.q { font-size: 13px; line-height: 1.35; }
+.a { visibility: hidden; font-size: 12px; }
+.clue.pinned .q { visibility: hidden; }
+.clue.pinned .a { visibility: visible; }
+@media (hover: hover) {
+  .clue-head:hover + .clue-body .q { visibility: hidden; }
+  .clue-head:hover + .clue-body .a { visibility: visible; }
+}
+.ans { color: var(--ans); font-weight: 700; font-size: 14px; }
+.line { margin-top: 5px; }
+.line.ok { color: var(--ok); font-weight: 700; }
+.line.bad { color: var(--bad); }
+.line.dim { color: var(--dim); }
+
+/* highlight mode */
+.hl .cell.k1 { background: var(--t1); }
+.hl .cell.k2 { background: var(--t2); }
+.hl .cell.k3 { background: var(--t3); }
+.hl .cell.kn { background: var(--tn); }
+.hl .cell.kx { opacity: .45; }
+.hl .cell.k1 .clue-head { background: var(--c1); }
+.hl .cell.k2 .clue-head { background: var(--c2); }
+.hl .cell.k3 .clue-head { background: var(--c3); }
+.hl .cell.kn .clue-head { background: var(--cn); }
+.hl .cell.k1 .stake, .hl .cell.k2 .stake, .hl .cell.k3 .stake, .hl .cell.kn .stake,
+.hl .cell.k1 .order, .hl .cell.k2 .order, .hl .cell.k3 .order, .hl .cell.kn .order { color: #04101F; }
+.hl .cell.k1 .stake.premia, .hl .cell.k2 .stake.premia, .hl .cell.k3 .stake.premia, .hl .cell.kn .stake.premia { color: #8E0012; }
+
+.legend {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+  margin-bottom: 12px; padding: 8px 14px;
+  background: var(--panel2); border: 1px solid var(--line);
+  font-size: 13px; color: var(--muted);
+}
+.legend[hidden] { display: none; }
+.lg { display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 2px; }
+.sw.k1 { background: var(--c1); } .sw.k2 { background: var(--c2); }
+.sw.k3 { background: var(--c3); } .sw.kn { background: var(--cn); }
+
+/* ---------- score tables ---------- */
+.tablewrap { overflow-x: auto; padding: 4px 16px 0; }
+table.scores { border-collapse: collapse; margin: 4px 0 0; }
+.scores th, .scores td {
+  min-width: 150px; padding: 7px 18px;
+  border: 1px solid var(--line2); text-align: center; vertical-align: top;
+}
+.scores th { background: var(--board-head); font-weight: 700; border-top-width: 3px; }
+.scores th.k1 { border-top-color: var(--c1); }
+.scores th.k2 { border-top-color: var(--c2); }
+.scores th.k3 { border-top-color: var(--c3); }
+.val { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.neg { color: var(--bad); }
+.remarks { font-size: 12px; color: var(--muted); text-align: center; }
+.remarks div + div { margin-top: 2px; }
+.winner { color: var(--gold2); font-weight: 700; }
+.wager { font-size: 12px; color: var(--muted); }
+.resp { margin-top: 3px; font-size: 15px; font-weight: 700; }
+.resp.ok { color: var(--ok); }
+.resp.bad { color: var(--bad); }
+.na { color: var(--dim); font-size: 12px; }
+
+/* ---------- final question ---------- */
+.finalbox { max-width: 760px; margin: 12px 16px 0; background: var(--board); }
+.finalbox .clue { min-height: 140px; }
+.finalbox .clue-head { justify-content: center; padding: 8px; background: var(--board-head); border-bottom: 2px solid var(--gold); }
+.fcat { font-weight: 700; font-size: 14px; }
+.finalbox .clue-body { padding: 14px 18px; text-align: center; }
+.finalbox .q { font-size: 16px; line-height: 1.4; }
+.finalbox .a { font-size: 14px; }
+.finalbox .ans { font-size: 18px; }
+
+/* ---------- chart ---------- */
+.keyline { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 6px 16px 0; font-size: 13px; }
+.chartwrap { overflow-x: auto; padding: 4px 16px 0; }
+.chartwrap svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.chartwrap text { font-family: Arimo, Arial, Helvetica, sans-serif; font-size: 11px; fill: var(--muted); }
+.chartwrap .lbl { font-size: 12px; font-weight: 700; }
+
+.hlbox { display: flex; align-items: center; gap: 8px; margin: 22px 16px 0; font-size: 14px; cursor: pointer; }
+.hlbox input { width: 16px; height: 16px; accent-color: var(--gold); }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <a class="brand" href="index.html"><span class="b-tele">Tele</span><span class="b-stats">Stats</span></a>
+  <span class="tagline">Archiwum polskich teleturniejów</span>
+</header>
+
+<main class="page">
+  <div id="legend" class="legend" hidden></div>
+  <article id="sheet" class="sheet">
+    <div id="app"><p class="status">Ładowanie danych…</p></div>
+  </article>
+</main>
+
+<footer class="foot">TeleStats jest fanowskim archiwum polskich teleturniejów. Materiały i nazwy programów należą do ich właścicieli.</footer>
+
+<noscript><p class="status error">Ta strona wymaga włączonego JavaScriptu.</p></noscript>
+
+<script>
+/* =====================================================================
+   SETTINGS: the only part you normally need to touch
+   ===================================================================== */
+const SUPABASE_URL = "https://eryzdoojjxnkpmcyaprp.supabase.co";
+const SUPABASE_KEY = "sb_publishable_yDhRhsjQd0GTgc8w7GEozg_jQ2yXupq";   // public "publishable" key – safe in a website
+
+// show_id in the address -> table prefix in Supabase. Add 1 z 10, Familiada etc. here later.
+const SHOWS = {
+  1: { prefix: "vabanque", name: "Va Banque" }
+};
+
+const COUNT_FINAL_IN_STATS = false;       // true = the final question also counts in "Poprawne / Błędne"
+const ORDER_RESTARTS_EACH_ROUND = true;   // true = order badge 1-30 in each round (like J-Archive); false = 1-60 across the episode
+
+/* =====================================================================
+   SMALL HELPERS
+   ===================================================================== */
+const NBSP = "\u00A0";
+const WEEKDAYS = ["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"];
+const MONTHS = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
+const ORDINALS = ["", "pierwszy", "drugi", "trzeci", "czwarty", "piąty", "szósty", "siódmy", "ósmy", "dziewiąty", "dziesiąty"];
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function fmtNum(n) {
+  const digits = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
+  return (n < 0 ? "\u2212" : "") + digits;
+}
+const fmtZl = n => fmtNum(n) + NBSP + "zł";
+
+function fmtDate(iso) {
+  const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return `${WEEKDAYS[weekday]}, ${d} ${MONTHS[m - 1]} ${y}`;
+}
+
+function lowerFirst(s) {
+  return /^[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+}
+
+/* =====================================================================
+   FETCHING FROM SUPABASE (plain REST call, no libraries needed)
+   ===================================================================== */
+async function sb(table, query) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+    headers: { apikey: SUPABASE_KEY, Accept: "application/json" }
+  });
+  if (!res.ok) throw new Error(`${table}: HTTP ${res.status}`);
+  return res.json();
+}
+
+/* =====================================================================
+   TURNING RAW ROWS INTO ONE "MODEL" OBJECT
+   ===================================================================== */
+function buildModel({ showId, show, odc, gracze, pytania, przebieg, hasPrev, hasNext }) {
+  const epId = Number(odc.odcinek_id);
+  const warnings = [];
+
+  // --- players, in station order 1..3 ---
+  const gById = new Map(gracze.map(g => [Number(g.gracz_id), g]));
+  const stationIds = [odc.gracz_1, odc.gracz_2, odc.gracz_3].map(Number);
+  const players = stationIds.map((id, i) => {
+    const g = gById.get(id) || {};
+    if (!gById.has(id)) warnings.push(`Brak zawodnika ${id} w tabeli gracze`);
+    return {
+      station: i + 1, id,
+      first: g.gracz_imie || `Zawodnik ${i + 1}`, last: g.gracz_nazwisko || "",
+      job: g.gracz_zawod || "", city: g.gracz_miasto || "", sex: g.gracz_plec || ""
+    };
+  });
+  // short label used in boards, charts and legends (adds an initial if two first names are equal)
+  players.forEach(p => {
+    const dup = players.filter(o => o.first === p.first).length > 1;
+    p.label = dup && p.last ? `${p.first} ${p.last.charAt(0)}.` : p.first;
+  });
+  const stationOf = new Map(players.map(p => [p.id, p.station]));
+  const labelOf = id => (players[stationOf.get(id) - 1] || {}).label || "?";
+
+  // --- events in play order ---
+  const events = przebieg.slice().sort((a, b) =>
+    a.kolejnosc_w_odcinku - b.kolejnosc_w_odcinku || a.zdarzenie_id - b.zdarzenie_id);
+
+  const evByQ = new Map();
+  const evByOrder = new Map();
+  for (const e of events) {
+    if (!evByQ.has(e.pytanie_id)) evByQ.set(e.pytanie_id, []);
+    evByQ.get(e.pytanie_id).push(e);
+    if (!evByOrder.has(e.kolejnosc_w_odcinku)) evByOrder.set(e.kolejnosc_w_odcinku, []);
+    evByOrder.get(e.kolejnosc_w_odcinku).push(e);
+  }
+
+  // --- running scores: one snapshot after every question ---
+  const score = new Map(players.map(p => [p.id, 0]));
+  const series = players.map(() => [0]);        // index 0 = start of the game
+  const roundEnd = {};                          // round -> x position of its last question
+  const roundScores = {};                       // round -> [score of station 1, 2, 3]
+  let step = 0;
+  for (const order of [...evByOrder.keys()].sort((a, b) => a - b)) {
+    step++;
+    const group = evByOrder.get(order);
+    for (const e of group) {
+      if (!stationOf.has(e.gracz_id)) {
+        if (e.gracz_id !== 0) warnings.push(`Zdarzenie ${e.zdarzenie_id}: nieznany gracz_id ${e.gracz_id}`);
+        continue;                               // gracz_id 0 = nobody buzzed in
+      }
+      const before = score.get(e.gracz_id);
+      const after = before + e.punkty_zmiana;
+      if (before !== e.punkty_przed || after !== e.punkty_po) {
+        warnings.push(`Zdarzenie ${e.zdarzenie_id}: punkty_przed/po nie zgadzają się z sumą zmian`);
+      }
+      score.set(e.gracz_id, after);
+    }
+    players.forEach((p, i) => series[i].push(score.get(p.id)));
+    const round = group[group.length - 1].odcinek_runda;
+    roundEnd[round] = step;
+    roundScores[round] = players.map(p => score.get(p.id));
+  }
+  const finalScores = players.map(p => score.get(p.id));
+
+  // --- right / wrong counters (premia counted separately, like "DD" in J-Archive) ---
+  const premiaIds = new Set(pytania.filter(q => q.pytanie_premia).map(q => q.pytanie_id));
+  const stats = players.map(() => ({ right: 0, rightPremia: 0, wrong: 0, wrongPremia: 0 }));
+  for (const e of events) {
+    const st = stationOf.get(e.gracz_id);
+    if (!st) continue;
+    const s = stats[st - 1];
+    if (e.typ_zdarzenia === "odpowiedz") {
+      const prem = premiaIds.has(e.pytanie_id);
+      if (e.odpowiedz_poprawna) { s.right++; if (prem) s.rightPremia++; }
+      else { s.wrong++; if (prem) s.wrongPremia++; }
+    } else if (e.typ_zdarzenia === "final" && COUNT_FINAL_IN_STATS) {
+      if (e.final_poprawna) s.right++; else s.wrong++;
+    }
+  }
+
+  // --- boards ---
+  function outcome(q) {
+    const evs = evByQ.get(q.pytanie_id) || [];
+    const answered = evs.filter(e => e.typ_zdarzenia === "odpowiedz");
+    const right = answered.find(e => e.odpowiedz_poprawna) || null;
+    return {
+      asked: evs.length > 0,
+      right,
+      wrong: answered.filter(e => !e.odpowiedz_poprawna),
+      firstOrder: evs.length ? Math.min(...evs.map(e => e.kolejnosc_w_odcinku)) : null
+    };
+  }
+
+  function buildRound(r) {
+    const qs = pytania.filter(q => !q.pytanie_finalowe && q.pytanie_runda === r)
+      .sort((a, b) => a.pytanie_id - b.pytanie_id);
+    if (!qs.length) return null;
+
+    // pytanie_id = episode + round + category no. + question no.  ->  floor(id / 10) identifies the category
+    const groups = new Map();
+    for (const q of qs) {
+      const key = Math.floor(q.pytanie_id / 10);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(q);
+    }
+    const outcomes = new Map(qs.map(q => [q.pytanie_id, outcome(q)]));
+    const orderOf = new Map();
+    qs.filter(q => outcomes.get(q.pytanie_id).asked)
+      .sort((a, b) => outcomes.get(a.pytanie_id).firstOrder - outcomes.get(b.pytanie_id).firstOrder)
+      .forEach((q, i) => orderOf.set(q.pytanie_id, ORDER_RESTARTS_EACH_ROUND ? i + 1 : outcomes.get(q.pytanie_id).firstOrder));
+
+    const cats = [...groups.values()].map(cells => ({
+      name: cells[0].pytanie_kategoria,
+      cells: cells.map(q => {
+        const o = outcomes.get(q.pytanie_id);
+        return {
+          q, order: orderOf.get(q.pytanie_id) ?? null, asked: o.asked,
+          rightLabel: o.right ? labelOf(o.right.gracz_id) : null,
+          rightStation: o.right ? stationOf.get(o.right.gracz_id) || 0 : 0,
+          wrong: o.wrong.map(w => ({ label: labelOf(w.gracz_id), answer: w.odpowiedz_udzielona }))
+        };
+      })
+    }));
+    return { number: r, cats, rows: Math.max(...cats.map(c => c.cells.length)) };
+  }
+
+  // --- final question ---
+  const finalQ = pytania.find(q => q.pytanie_finalowe) || null;
+  const finalEvents = events.filter(e => e.typ_zdarzenia === "final");
+  const finalByStation = players.map(p => finalEvents.find(e => e.gracz_id === p.id) || null);
+
+  // --- contestants' extra line for the returning champion (station 1) ---
+  players[0].returning = odc.gracz_1_zwyciezca === true;
+  players[0].timesPlayed = Number(odc.gracz_1_seria || 0) + 1;
+  players[0].winnings = Number(odc.gracz_1_wygrana || 0);
+
+  return {
+    showName: show.name, host: odc.odcinek_prowadzacy || "",
+    title: `Odcinek #${epId} - ${fmtDate(odc.odcinek_data)}`,
+    epId, showId, players,
+    prevHref: hasPrev ? `episode.html?show_id=${showId}&episode_id=${epId - 1}` : null,
+    nextHref: hasNext ? `episode.html?show_id=${showId}&episode_id=${epId + 1}` : null,
+    rounds: [buildRound(1), buildRound(2)],
+    roundScores, finalScores, stats,
+    winnerStation: odc.odcinek_zwyciezca ? Number(odc.odcinek_zwyciezca) : null,
+    finalQ, finalByStation,
+    series, roundEnd, finalStep: roundEnd[3] || null,
+    warnings
+  };
+}
+
+/* =====================================================================
+   RENDERING (each function returns an HTML string)
+   ===================================================================== */
+function renderContestants(m) {
+  const line = p => {
+    const parts = [`<b>${esc(p.first)} ${esc(p.last)}</b>`];
+    if (p.job) parts.push(esc(lowerFirst(p.job)));
+    if (p.city) parts.push(esc(p.city));
+    let s = parts.join(", ");
+    if (p.returning) {
+      const ord = p.timesPlayed <= 10 ? ORDINALS[p.timesPlayed] : String(p.timesPlayed);
+      s += ` (gra po raz ${ord}, do tej pory ${p.sex === "K" ? "wygrała" : "wygrał"} ${fmtZl(p.winnings)})`;
+    }
+    return `<li>${s}</li>`;
+  };
+  const nav = (href, label, cls) => href
+    ? `<a class="nav ${cls}" href="${esc(href)}">[${label}]</a>`
+    : `<span class="nav ${cls} off" aria-disabled="true">[${label}]</span>`;
+  return `<section>
+    <div class="bar"><h2>Zawodnicy</h2></div>
+    <div class="cgrid">
+      ${nav(m.prevHref, "&lt;&lt; poprzedni odcinek", "l")}
+      <ul class="clist">${m.players.slice().reverse().map(line).join("")}</ul>
+      ${nav(m.nextHref, "następny odcinek &gt;&gt;", "r")}
+    </div>
+  </section>`;
+}
+
+function renderCell(c) {
+  const q = c.q;
+  const klass = !c.asked ? "kx" : c.rightStation ? `k${c.rightStation}` : "kn";
+  let answer = `<div class="ans">${esc(q.pytanie_odpowiedz)}</div>`;
+  if (!c.asked) {
+    answer += `<div class="line dim">Pytanie nie zostało zadane</div>`;
+  } else {
+    if (c.rightLabel) answer += `<div class="line ok">\u2713 ${esc(c.rightLabel)}</div>`;
+    for (const w of c.wrong) answer += `<div class="line bad">\u2717 ${esc(w.label)}: ${esc(w.answer)}</div>`;
+    if (!c.rightLabel) answer += `<div class="line bad">Brak poprawnej odpowiedzi</div>`;
+  }
+  return `<td class="cell ${klass}"><div class="clue">
+    <div class="clue-head" tabindex="0" role="button" aria-pressed="false" title="Pokaż odpowiedź">
+      <span class="stake${q.pytanie_premia ? " premia" : ""}">${fmtZl(q.pytanie_stawka)}</span>
+      <span class="order">${c.order ?? ""}</span>
+    </div>
+    <div class="clue-body"><div class="q">${esc(q.pytanie_tresc)}</div><div class="a">${answer}</div></div>
+  </div></td>`;
+}
+
+function renderBoard(round) {
+  const head = round.cats.map(c => `<th scope="col">${esc(c.name)}</th>`).join("");
+  let body = "";
+  for (let r = 0; r < round.rows; r++) {
+    body += "<tr>" + round.cats.map(c => c.cells[r] ? renderCell(c.cells[r]) : `<td class="cell empty"></td>`).join("") + "</tr>";
+  }
+  return `<div class="boardwrap"><table class="board"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderScores(m, title, scores) {
+  const names = m.players.map(p => `<th class="k${p.station}">${esc(p.label)}</th>`).join("");
+  const vals = scores.map(v => `<td class="val${v < 0 ? " neg" : ""}">${fmtZl(v)}</td>`).join("");
+  return `<h3>${title}</h3><div class="tablewrap"><table class="scores"><tr>${names}</tr><tr>${vals}</tr></table></div>`;
+}
+
+function renderFinal(m) {
+  if (!m.finalQ) return "";
+  const q = m.finalQ;
+  const box = `<div class="finalbox"><div class="clue">
+    <div class="clue-head" tabindex="0" role="button" aria-pressed="false" title="Pokaż odpowiedź"><span class="fcat">${esc(q.pytanie_kategoria)}</span></div>
+    <div class="clue-body"><div class="q">${esc(q.pytanie_tresc)}</div><div class="a"><div class="ans">${esc(q.pytanie_odpowiedz)}</div></div></div>
+  </div></div>`;
+
+  const names = m.players.map(p => `<th class="k${p.station}">${esc(p.label)}</th>`).join("");
+  const cells = m.finalByStation.map(e => e
+    ? `<td><div class="wager">Stawka: ${fmtZl(e.final_stawka)}</div><div class="resp ${e.final_poprawna ? "ok" : "bad"}">${esc(e.final_odpowiedz || "brak odpowiedzi")}</div></td>`
+    : `<td><div class="na">brak udziału w finale</div></td>`).join("");
+  return `<section><div class="bar"><h2>Pytanie finałowe:</h2></div>${box}
+    <div class="tablewrap" style="margin-top:12px"><table class="scores"><tr>${names}</tr><tr>${cells}</tr></table></div></section>`;
+}
+
+function renderFinalScores(m) {
+  const names = m.players.map(p => `<th class="k${p.station}">${esc(p.label)}</th>`).join("");
+  const vals = m.finalScores.map(v => `<td class="val${v < 0 ? " neg" : ""}">${fmtZl(v)}</td>`).join("");
+  const remarks = m.stats.map((s, i) => {
+    const prem = k => (k ? ` (w tym premie: ${k})` : "");
+    return `<td class="remarks">${m.winnerStation === i + 1 ? `<div class="winner">Zwycięzca</div>` : ""}
+      <div>Poprawne: ${s.right}${prem(s.rightPremia)}</div>
+      <div>Błędne: ${s.wrong}${prem(s.wrongPremia)}</div></td>`;
+  }).join("");
+  return `<h3>Wynik końcowy:</h3><div class="tablewrap"><table class="scores"><tr>${names}</tr><tr>${vals}</tr><tr>${remarks}</tr></table></div>`;
+}
+
+function renderChart(m) {
+  const n = m.series[0].length - 1;
+  if (n < 1) return `<p class="hint">Brak danych do wykresu.</p>`;
+  const W = 900, H = 380, L = 64, R = 88, T = 26, B = 46;
+
+  const all = m.series.flat();
+  let lo = Math.min(0, ...all), hi = Math.max(0, ...all);
+  const steps = [100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 50000];
+  const stepY = steps.find(s => Math.ceil(hi / s) - Math.floor(lo / s) <= 8) || 50000;
+  lo = Math.floor(lo / stepY) * stepY;
+  hi = Math.ceil(hi / stepY) * stepY;
+  if (hi === lo) hi = lo + stepY;
+
+  const x = i => L + (W - L - R) * i / n;
+  const y = v => T + (H - T - B) * (hi - v) / (hi - lo);
+  const f = v => v.toFixed(1);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Wynik każdego zawodnika po kolejnych pytaniach">`;
+
+  // horizontal grid + y labels
+  for (let v = lo; v <= hi; v += stepY) {
+    svg += `<line x1="${L}" x2="${W - R}" y1="${f(y(v))}" y2="${f(y(v))}" stroke="${v === 0 ? "#71839D" : "#28405F"}" stroke-width="${v === 0 ? 1.5 : 1}"/>`;
+    svg += `<text x="${L - 8}" y="${f(y(v) + 4)}" text-anchor="end">${fmtNum(v)}</text>`;
+  }
+  // x ticks
+  for (let i = 0; i <= n; i += 10) {
+    if (m.finalStep && m.finalStep - i < 4) continue;       // leave room for the "F" tick
+    svg += `<text x="${f(x(i))}" y="${H - B + 18}" text-anchor="middle">${i}</text>`;
+  }
+  if (m.finalStep) svg += `<text x="${f(x(m.finalStep))}" y="${H - B + 18}" text-anchor="middle">F</text>`;
+  svg += `<text x="${f((L + W - R) / 2)}" y="${H - 6}" text-anchor="middle">kolejność zadawanych pytań</text>`;
+  svg += `<text transform="translate(14 ${f((T + H - B) / 2)}) rotate(-90)" text-anchor="middle">wynik (zł)</text>`;
+
+  // round dividers
+  [1, 2].forEach(r => {
+    const at = m.roundEnd[r];
+    if (!at || at >= n) return;
+    svg += `<line x1="${f(x(at))}" x2="${f(x(at))}" y1="${T - 6}" y2="${H - B}" stroke="#71839D" stroke-dasharray="4 4" stroke-width="1"/>`;
+    svg += `<text x="${f(x(at) - 5)}" y="${T - 10}" text-anchor="end">koniec ${r}. rundy</text>`;
+  });
+
+  // score lines, hover points and direct labels
+  m.players.forEach((p, i) => {
+    const pts = m.series[i].map((v, k) => `${f(x(k))},${f(y(v))}`).join(" ");
+    svg += `<polyline fill="none" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" style="stroke:var(--c${p.station})" points="${pts}"/>`;
+  });
+  m.players.forEach((p, i) => {
+    for (let k = 1; k <= n; k++) {
+      const what = (m.finalStep && k === m.finalStep) ? "Finał" : `Pytanie ${k}`;
+      svg += `<circle cx="${f(x(k))}" cy="${f(y(m.series[i][k]))}" r="5" fill="transparent" pointer-events="all"><title>${esc(what)}: ${esc(p.label)}, ${fmtZl(m.series[i][k])}</title></circle>`;
+    }
+  });
+  const ends = m.players.map((p, i) => ({ p, y: y(m.series[i][n]) })).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 14) ends[k].y = ends[k - 1].y + 14;
+  ends.forEach(e => {
+    svg += `<text class="lbl" x="${f(x(n) + 8)}" y="${f(e.y + 4)}" style="fill:var(--c${e.p.station})">${esc(e.p.label)}</text>`;
+  });
+  svg += `</svg>`;
+
+  const key = m.players.map(p => `<span class="lg"><i class="sw k${p.station}"></i>${esc(p.label)}</span>`).join("");
+  return `<div class="keyline">${key}</div><div class="chartwrap">${svg}</div>`;
+}
+
+function renderPage(m) {
+  let html = `<div class="titleblock"><h1>${esc(m.title)}</h1>
+    <p class="subtle">${esc(m.showName)}${m.host ? `, prowadzący: ${esc(m.host)}` : ""}</p></div>`;
+  html += renderContestants(m);
+
+  m.rounds.forEach((round, i) => {
+    if (!round) return;
+    const r = i + 1;
+    html += `<section><div class="bar"><h2>${r}. runda</h2></div>`;
+    if (r === 1) html += `<p class="hint">Najedź kursorem na stawkę (lub dotknij jej), aby zobaczyć odpowiedź. Czerwona, pogrubiona stawka oznacza premię, a liczba w rogu to kolejność wyboru pytania.</p>`;
+    html += renderBoard(round);
+    if (m.roundScores[r]) html += renderScores(m, `Wynik na koniec ${r}. rundy:`, m.roundScores[r]);
+    html += `</section>`;
+  });
+
+  html += renderFinal(m);
+  html += renderFinalScores(m);
+  html += `<section><div class="bar"><h2>Dynamika gry:</h2></div>${renderChart(m)}</section>`;
+  html += `<label class="hlbox"><input type="checkbox" id="hl"> Podświetl pytania wg odpowiadających</label>`;
+  return html;
+}
+
+function renderLegend(m) {
+  return `<span>Kolor pytania = kto odpowiedział poprawnie:</span>` +
+    m.players.map(p => `<span class="lg"><i class="sw k${p.station}"></i>${esc(p.label)}</span>`).join("") +
+    `<span class="lg"><i class="sw kn"></i>Brak poprawnej odpowiedzi</span>`;
+}
+
+/* =====================================================================
+   PAGE LOGIC
+   ===================================================================== */
+function fail(app, title, detail) {
+  app.innerHTML = `<p class="status error">${esc(title)}${detail ? `<small>${esc(detail)}</small>` : ""}</p>`;
+}
+
+async function init() {
+  const app = document.getElementById("app");
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const showId = params.get("show_id");
+    const epRaw = params.get("episode_id");
+    const show = SHOWS[showId];
+    if (!show) return fail(app, "Nieznany program.", `Adres powinien wyglądać tak: episode.html?show_id=1&episode_id=1115`);
+    if (!/^\d+$/.test(epRaw || "")) return fail(app, "Brak numeru odcinka.", `Adres powinien wyglądać tak: episode.html?show_id=1&episode_id=1115`);
+
+    const ep = Number(epRaw);
+    const t = name => `${show.prefix}_${name}`;
+    const [odcRows, pytania, przebieg, neighbours] = await Promise.all([
+      sb(t("odcinki"), `odcinek_id=eq.${ep}`),
+      sb(t("pytania"), `odcinek_id=eq.${ep}&order=pytanie_id.asc`),
+      sb(t("przebieg"), `odcinek_id=eq.${ep}&order=kolejnosc_w_odcinku.asc,zdarzenie_id.asc`),
+      sb(t("odcinki"), `select=odcinek_id&odcinek_id=in.(${ep - 1},${ep + 1})`)
+    ]);
+    if (!odcRows.length) return fail(app, `Nie znaleziono odcinka #${ep} w bazie.`, "");
+
+    const odc = odcRows[0];
+    const gracze = await sb(t("gracze"), `gracz_id=in.(${[odc.gracz_1, odc.gracz_2, odc.gracz_3].join(",")})`);
+
+    const model = buildModel({
+      showId, show, odc, gracze, pytania, przebieg,
+      hasPrev: neighbours.some(r => Number(r.odcinek_id) === ep - 1),
+      hasNext: neighbours.some(r => Number(r.odcinek_id) === ep + 1)
+    });
+    if (model.warnings.length) console.warn("TeleStats – uwagi do danych:", model.warnings);
+
+    document.title = `${show.name} – odcinek #${ep} – TeleStats`;
+    app.innerHTML = renderPage(model);
+
+    const legend = document.getElementById("legend");
+    legend.innerHTML = renderLegend(model);
+    document.getElementById("hl").addEventListener("change", ev => {
+      document.getElementById("sheet").classList.toggle("hl", ev.target.checked);
+      legend.hidden = !ev.target.checked;
+    });
+
+    // click / Enter on a stake pins the answer open (handy on phones)
+    const toggle = head => {
+      const open = head.parentElement.classList.toggle("pinned");
+      head.setAttribute("aria-pressed", String(open));
+    };
+    app.addEventListener("click", ev => {
+      const head = ev.target.closest(".clue-head");
+      if (head) toggle(head);
+    });
+    app.addEventListener("keydown", ev => {
+      const head = ev.target.closest && ev.target.closest(".clue-head");
+      if (head && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); toggle(head); }
+    });
+  } catch (err) {
+    console.error(err);
+    fail(app, "Nie udało się pobrać danych. Odśwież stronę lub spróbuj ponownie później.", String(err.message || err));
+  }
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { buildModel, renderPage, renderLegend, fmtNum, fmtDate };   // lets the page be tested outside a browser
+} else {
+  init();
+}
+</script>
+</body>
+</html>
