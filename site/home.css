@@ -1,0 +1,13 @@
+/* Dodatki dla strony głównej i kontaktu. Ładowany PO styles.css, więc nie nadpisuje Twojego pliku. */
+.off{color:var(--dim);cursor:not-allowed}
+.show .off{display:block;padding:2px 0}
+.show .off::before{content:"└ ";font-family:var(--mono)}
+.btn.disabled{background:var(--line);color:var(--dim);cursor:not-allowed}
+.btn.disabled:hover{background:var(--line)}
+.feed{list-style:none}
+.feed li{padding:10px 12px;border-bottom:1px solid var(--line)}
+.feed li:nth-child(odd){background:var(--bar)}
+.counts{list-style:none;display:grid;gap:8px;margin:12px 0 16px}
+.counts li{display:flex;justify-content:space-between;gap:12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.counts b{font-family:var(--mono);color:var(--gold-light)}
+.layout.one{grid-template-columns:minmax(0,720px)}

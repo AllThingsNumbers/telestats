@@ -6,31 +6,17 @@
 <title>TeleStats – archiwum polskich teleturniejów</title>
 <meta name="description" content="Fanowskie archiwum polskich teleturniejów: odcinki, zawodnicy, pytania i wyniki. Na początek: Va Banque.">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="home.css">
 </head>
 <body>
 <div class="page">
 
 <header class="mast">
-  <div class="util">
-    <nav aria-label="Menu główne">
-      <a href="index.html" aria-current="page">[ STRONA GŁÓWNA ]</a>
-      <a href="#">[ BAZA ODCINKÓW ]</a>
-      <a href="dodaj-odcinek.html">[ DODAJ ODCINEK ]</a>
-      <a href="#">[ STATYSTYKI ]</a>
-    </nav>
-    <span>aktualizacja: 30.09.2026</span>
-  </div>
   <div class="brand">
     <div>
       <a class="logo" href="index.html">Tele<b>Stats</b></a>
       <p class="tag">Archiwum polskich teleturniejów</p>
     </div>
-    <!-- Wyszukiwarka tymczasowa: DuckDuckGo przeszukuje tylko tę stronę. Własną wyszukiwarkę dodamy z bazą danych. -->
-    <form class="search" action="https://duckduckgo.com/" role="search">
-      <input type="hidden" name="sites" value="telestats.pl">
-      <input type="search" name="q" placeholder="program, odcinek, zawodnik…" aria-label="Szukaj w archiwum">
-      <button type="submit">Szukaj</button>
-    </form>
   </div>
 </header>
 
@@ -42,26 +28,16 @@
     <section class="panel">
       <div class="bar"><h2>PROGRAMY</h2></div>
       <div class="shows">
-        <div class="show"><h3>Va Banque</h3><a href="dodaj-odcinek.html?program=va-banque">Dodaj odcinek</a><a href="#">Wszystkie odcinki</a></div>
-        <div class="show"><h3>1 z 10</h3><a href="dodaj-odcinek.html?program=1-z-10">Dodaj odcinek</a><a href="#">Wszystkie odcinki</a></div>
-        <div class="show"><h3>Familiada</h3><a href="dodaj-odcinek.html?program=familiada">Dodaj odcinek</a><a href="#">Wszystkie odcinki</a></div>
+        <div class="show"><h3>Va Banque</h3><span class="off" title="Wkrótce">Dodaj odcinek</span><span class="off" title="Wkrótce">Wszystkie odcinki</span></div>
+        <div class="show"><h3>1 z 10</h3><span class="off" title="Wkrótce">Dodaj odcinek</span><span class="off" title="Wkrótce">Wszystkie odcinki</span></div>
+        <div class="show"><h3>Familiada</h3><span class="off" title="Wkrótce">Dodaj odcinek</span><span class="off" title="Wkrótce">Wszystkie odcinki</span></div>
       </div>
     </section>
 
     <section class="panel">
       <div class="bar"><h2>NAJNOWSZE ODCINKI</h2><small>ostatnie wpisy</small></div>
-      <div class="wrap">
-        <table>
-          <thead>
-            <tr><th>PROGRAM</th><th>ODCINEK</th><th>ZWYCIĘZCA</th><th class="num">DATA EMISJI</th></tr>
-          </thead>
-          <tbody>
-            <tr><td colspan="4">Archiwum jest w budowie. <a href="dodaj-odcinek.html">Dodaj pierwszy odcinek</a>.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="rowbar"><span>W bazie: 0 odcinków</span><a href="#">[ PEŁNE ARCHIWUM → ]</a></div>
-      <p class="note">Archiwum dopiero powstaje – każdy może pomóc je uzupełnić.</p>
+      <ul class="feed" id="feed"><li>Ładowanie…</li></ul>
+      <div class="rowbar"><span id="total">W bazie: …</span></div>
     </section>
 
   </main>
@@ -70,14 +46,13 @@
     <section class="panel">
       <div class="bar"><h2>POSTĘP ARCHIWUM</h2></div>
       <div class="pad">
-        <p class="meta">Ile odcinków jest już w archiwum? Przepisz odcinek lub pytania z programu i pomóż nam dojść do 100%.</p>
-        <!-- Procenty i liczby wstawi później skrypt fetch_data.py -->
-        <ul class="prog">
-          <li><div><a href="dodaj-odcinek.html?program=va-banque">Va Banque</a><strong>0%</strong></div><progress value="0" max="100" aria-label="Va Banque: 0%">0%</progress><span class="sub">0 odcinków w bazie</span></li>
-          <li><div><a href="dodaj-odcinek.html?program=1-z-10">1 z 10</a><strong>0%</strong></div><progress value="0" max="100" aria-label="1 z 10: 0%">0%</progress><span class="sub">0 odcinków w bazie</span></li>
-          <li><div><a href="dodaj-odcinek.html?program=familiada">Familiada</a><strong>0%</strong></div><progress value="0" max="100" aria-label="Familiada: 0%">0%</progress><span class="sub">0 odcinków w bazie</span></li>
+        <p class="meta">Liczba odcinków w archiwum:</p>
+        <ul class="counts">
+          <li><span>Va Banque</span><b data-show="1">…</b></li>
+          <li><span>1 z 10</span><b data-show="2">…</b></li>
+          <li><span>Familiada</span><b data-show="3">…</b></li>
         </ul>
-        <a class="btn" href="dodaj-odcinek.html">Dodaj odcinek</a>
+        <span class="btn disabled" aria-disabled="true" title="Wkrótce">Dodaj odcinek</span>
       </div>
     </section>
   </aside>
@@ -88,9 +63,52 @@
     TeleStats jest fanowskim archiwum polskich teleturniejów.
     <small>Materiały i nazwy programów należą do ich właścicieli. © 2026 TeleStats</small>
   </div>
-  <nav aria-label="Stopka"><a href="#">O STRONIE</a><a href="#">KONTAKT</a><a href="#">ARCHIWUM</a></nav>
+  <nav aria-label="Stopka"><a href="kontakt.html">KONTAKT</a></nav>
 </footer>
 
 </div>
+<script>
+  // Te same dwie wartości, które masz w episode.html (Project URL i klucz PUBLICZNY, nigdy secret).
+  const SUPABASE_URL = "https://eryzdoojjxnkpmcyaprp.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_yDhRhsjQd0GTgc8w7GEozg_jQ2yXupq";
+  // Programy: id (jak show_id w episode.html), nazwa, tabela z odcinkami (null = jeszcze brak)
+  const SHOWS = [
+    { id: 1, name: "Va Banque", table: "vabanque_odcinki" },
+    { id: 2, name: "1 z 10", table: null },
+    { id: 3, name: "Familiada", table: null }
+  ];
+  const H = { apikey: SUPABASE_KEY };
+  if (!SUPABASE_KEY.startsWith("sb_")) H.Authorization = "Bearer " + SUPABASE_KEY;
+  const api = (path, extra) => fetch(SUPABASE_URL + "/rest/v1/" + path, { headers: { ...H, ...extra } });
+  const dzien = (iso) => { const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); };
+  const odc = (n) => n === 1 ? "odcinek" : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? "odcinki" : "odcinków";
+
+  (async () => {
+    const feed = document.getElementById("feed"), rows = [];
+    let total = 0, failed = false;
+    for (const s of SHOWS) {
+      const b = document.querySelector('[data-show="' + s.id + '"]');
+      if (!s.table) { b.textContent = "0"; continue; }
+      try {
+        const r = await api(s.table + "?select=odcinek_id,odcinek_data&order=odcinek_data.desc&limit=9", { Prefer: "count=exact" });
+        if (!r.ok) throw new Error(r.status);
+        const n = +r.headers.get("Content-Range").split("/")[1]; // liczba wszystkich odcinków (odcinek_id jest unikalny)
+        b.textContent = n; total += n;
+        (await r.json()).forEach((e) => rows.push({ s, e }));
+      } catch (err) { b.textContent = "–"; failed = true; }
+    }
+    rows.sort((a, b) => b.e.odcinek_data.localeCompare(a.e.odcinek_data));
+    feed.textContent = "";
+    if (!rows.length) feed.innerHTML = "<li>" + (failed ? "Nie udało się wczytać odcinków. Spróbuj ponownie później." : "Archiwum jest w budowie.") + "</li>";
+    rows.slice(0, 9).forEach(({ s, e }) => {
+      const li = document.createElement("li"), a = document.createElement("a");
+      a.href = "episode.html?show_id=" + s.id + "&episode_id=" + e.odcinek_id;
+      a.textContent = s.name + ": Odcinek #" + e.odcinek_id + " - " + dzien(e.odcinek_data);
+      li.append(a); feed.append(li);
+    });
+    document.getElementById("total").textContent = "W bazie: " + total + " " + odc(total);
+  })();
+</script>
 </body>
 </html>

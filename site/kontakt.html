@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kontakt | TeleStats</title>
+<meta name="description" content="Napisz do twórców archiwum TeleStats.">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="home.css">
+</head>
+<body>
+<div class="page">
+
+<header class="mast">
+  <div class="brand">
+    <div>
+      <a class="logo" href="index.html">Tele<b>Stats</b></a>
+      <p class="tag">Archiwum polskich teleturniejów</p>
+    </div>
+  </div>
+</header>
+
+<div class="layout one">
+  <main class="stack">
+    <section class="panel">
+      <div class="bar"><h1>KONTAKT</h1></div>
+      <form class="pad add" id="kontakt">
+        <p class="meta">Masz uwagę, znalazłeś błąd w odcinku albo chcesz pomóc w archiwum? Napisz do nas.</p>
+        <label>Imię lub pseudonim<input class="field" type="text" name="name" required maxlength="100"></label>
+        <label>Twój e-mail (żebyśmy mogli odpowiedzieć)<input class="field" type="email" name="email" required maxlength="200"></label>
+        <label>Wiadomość<textarea class="field" name="message" rows="8" required maxlength="5000"></textarea></label>
+        <label class="check"><input type="checkbox" name="zgoda" required> Wysyłając formularz zgadzam się na przetwarzanie podanych danych w celu odpowiedzi na wiadomość.</label>
+        <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
+        <div><button class="btn" type="submit">Wyślij</button></div>
+        <p id="status" role="status"></p>
+      </form>
+    </section>
+  </main>
+</div>
+
+<footer class="footer">
+  <div>
+    TeleStats jest fanowskim archiwum polskich teleturniejów.
+    <small>Materiały i nazwy programów należą do ich właścicieli. © 2026 TeleStats</small>
+  </div>
+  <nav aria-label="Stopka"><a href="kontakt.html">KONTAKT</a></nav>
+</footer>
+
+</div>
+<script>
+  // Klucz dostępu z web3forms.com (publiczny; powiązany z Twoim adresem e-mail, który nie jest widoczny na stronie).
+  const ACCESS_KEY = "72eb3eb7-f66b-4651-b4cf-41fbddb4bb31";
+  const f = document.getElementById("kontakt"), st = document.getElementById("status");
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const d = Object.fromEntries(new FormData(f));
+    st.textContent = "Wysyłanie…";
+    try {
+      const r = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ access_key: ACCESS_KEY, subject: "Wiadomość z telestats.pl", from_name: "TeleStats",
+                               name: d.name, email: d.email, message: d.message, botcheck: d.botcheck ? true : "" })
+      });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.message || r.status);
+      f.reset();
+      st.textContent = "Dziękujemy! Wiadomość została wysłana.";
+    } catch (err) {
+      st.textContent = "Nie udało się wysłać wiadomości. Spróbuj ponownie później.";
+    }
+  });
+</script>
+</body>
+</html>
